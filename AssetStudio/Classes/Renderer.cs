@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -116,11 +116,26 @@ namespace AssetStudio
                     {
                         var m_RayTraceProcedural = reader.ReadByte();
                     }
+                    if (version[0] > 2023 || (version[0] == 2023 && version[1] >= 2)) //2023.2 and up
+                    {
+                        var m_RayTracingAccelStructBuildFlagsOverride = reader.ReadByte();
+                        var m_RayTracingAccelStructBuildFlags = reader.ReadByte();
+                    }
+                    if (version[0] > 2023 || (version[0] == 2023 && version[1] >= 3)) //2023.3 (6000.0) and up
+                    {
+                        var m_SmallMeshCulling = reader.ReadByte();
+                    }
                     if (reader.Game.Type.IsGI() || reader.Game.Type.IsGICB3() || reader.Game.Type.IsGICB3Pre())
                     {
                         var m_MeshShowQuality = reader.ReadByte();
                     }
                     reader.AlignStream();
+                    if (version[0] > 6000 || (version[0] == 6000 && version[1] >= 2)) //6000.2 and up
+                    {
+                        var m_ForceMeshLod = reader.ReadInt16();
+                        reader.AlignStream();
+                        var m_MeshLodSelectionBias = reader.ReadSingle();
+                    }
                 }
                 else
                 {
@@ -229,6 +244,10 @@ namespace AssetStudio
                 //SInt16 m_SortingLayer 5.6 and up
                 var m_SortingOrder = reader.ReadInt16();
                 reader.AlignStream();
+                if (version[0] > 6000 || (version[0] == 6000 && version[1] >= 3)) //6000.3 and up
+                {
+                    var m_MaskInteraction = reader.ReadInt32();
+                }
                 if (reader.Game.Type.IsGIGroup() || reader.Game.Type.IsBH3())
                 {
                     var m_UseHighestMip = reader.ReadBoolean();

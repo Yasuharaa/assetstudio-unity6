@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -475,6 +475,7 @@ namespace AssetStudio
         public List<SelectorStateConstant> m_SelectorStateConstantArray;
         public uint m_DefaultState;
         public uint m_MotionSetCount;
+        public bool m_EvaluateTransitionsOnStart;
 
         public StateMachineConstant(ObjectReader reader)
         {
@@ -506,6 +507,12 @@ namespace AssetStudio
 
             m_DefaultState = reader.ReadUInt32();
             m_MotionSetCount = reader.ReadUInt32();
+
+            if (version[0] > 6000 || (version[0] == 6000 && version[1] >= 4)) //6000.4 and up
+            {
+                m_EvaluateTransitionsOnStart = reader.ReadBoolean();
+                reader.AlignStream();
+            }
         }
     }
 
@@ -518,6 +525,7 @@ namespace AssetStudio
         public Vector3[] m_PositionValues;
         public Vector4[] m_QuaternionValues;
         public Vector3[] m_ScaleValues;
+        public long[] m_EntityIdValues;
 
         public ValueArray(ObjectReader reader)
         {
@@ -549,6 +557,18 @@ namespace AssetStudio
                     m_IntValues = reader.ReadInt32Array();
                     m_BoolValues = reader.ReadBooleanArray();
                     reader.AlignStream();
+                }
+
+                if (version[0] > 6000 || (version[0] == 6000 && version[1] >= 2)) //6000.2 and up
+                {
+                    // EntityId: 4 bytes in 6000.2 - 6000.4, 8 bytes from 6000.5
+                    var isLongEntityId = version[0] > 6000 || (version[0] == 6000 && version[1] >= 5);
+                    int numEntityIds = reader.ReadInt32();
+                    m_EntityIdValues = new long[numEntityIds];
+                    for (int i = 0; i < numEntityIds; i++)
+                    {
+                        m_EntityIdValues[i] = isLongEntityId ? reader.ReadInt64() : reader.ReadInt32();
+                    }
                 }
             }
         }
@@ -589,6 +609,11 @@ namespace AssetStudio
 
         public AnimatorController(ObjectReader reader) : base(reader)
         {
+            if (version[0] > 6000 || (version[0] == 6000 && version[1] >= 4)) //6000.4 and up
+            {
+                var m_EvaluateTransitionsOnStart = reader.ReadBoolean();
+                reader.AlignStream();
+            }
             var m_ControllerSize = reader.ReadUInt32();
             var m_Controller = new ControllerConstant(reader);
 
