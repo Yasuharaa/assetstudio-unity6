@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,8 @@ namespace AssetStudio
         public TypeTree m_Type;
         public byte[] m_ScriptID; //Hash128
         public byte[] m_OldTypeHash; //Hash128
+        public byte[] m_TypeTreeContentHash; //Hash128, version >= 23
+        public int m_TypeTreeSerializedSize; //version >= 23, size of the type tree blob in bytes
         public int[] m_TypeDependencies;
         public string m_KlassName;
         public string m_NameSpace;

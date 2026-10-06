@@ -1,0 +1,66 @@
+--- a/AssetStudio/SerializedFile.cs
++++ b/AssetStudio/SerializedFile.cs
+@@ -312,7 +312,33 @@
+                 Logger.Verbose($"File has type tree enabled !!");
+                 type.m_Type = new TypeTree();
+                 type.m_Type.m_Nodes = new List<TypeTreeNode>();
+-                if (header.m_Version >= SerializedFileFormatVersion.Unknown_12 || header.m_Version == SerializedFileFormatVersion.Unknown_10)
++                if (header.m_Version >= SerializedFileFormatVersion.TypeTreeBlobHeader)
++                {
++                    type.m_TypeTreeContentHash = reader.ReadBytes(16);
++                    type.m_TypeTreeSerializedSize = reader.ReadInt32();
++                    Logger.Verbose($"Type tree blob size {type.m_TypeTreeSerializedSize}");
++                    if (type.m_TypeTreeSerializedSize > 0)
++                    {
++                        var blobEnd = reader.Position + type.m_TypeTreeSerializedSize;
++                        var magic = reader.ReadBytes(4);
++                        if (magic[0] != 'm' || magic[1] != 'h' || magic[2] != 't' || magic[3] != 't')
++                        {
++                            throw new IOException($"Invalid type tree blob magic {Convert.ToHexString(magic)} in {fileName}");
++                        }
++                        var blobVersion = reader.ReadUInt32();
++                        if (blobVersion != (uint)header.m_Version)
++                        {
++                            Logger.Warning($"Type tree blob version {blobVersion} differs from file format version {(int)header.m_Version} in {fileName}");
++                        }
++                        TypeTreeBlobRead(type.m_Type);
++                        if (reader.Position != blobEnd)
++                        {
++                            Logger.Warning($"Type tree blob of class {type.classID} ended at 0x{reader.Position:X}, expected 0x{blobEnd:X}");
++                            reader.Position = blobEnd;
++                        }
++                    }
++                }
++                else if (header.m_Version >= SerializedFileFormatVersion.Unknown_12 || header.m_Version == SerializedFileFormatVersion.Unknown_10)
+                 {
+                     TypeTreeBlobRead(type.m_Type);
+                 }
+--- a/AssetStudio/SerializedFileFormatVersion.cs
++++ b/AssetStudio/SerializedFileFormatVersion.cs
+@@ -80,8 +80,13 @@
+         /// </summary>
+         StoresTypeDependencies = 21,
+         /// <summary>
+-        /// 2020.1 to 2023.x / 6000.x (Unity 6)
++        /// 2020.1 to 2023.x / 6000.0 - 6000.4
+         /// </summary>
+-        LargeFilesSupport = 22
++        LargeFilesSupport = 22,
++        /// <summary>
++        /// 6000.5 and up: each SerializedType carries a type tree content hash (Hash128)
++        /// and a size-prefixed type tree blob that starts with "mhtt" + format version
++        /// </summary>
++        TypeTreeBlobHeader = 23
+     }
+ }
+--- a/AssetStudio/SerializedType.cs
++++ b/AssetStudio/SerializedType.cs
+@@ -13,6 +13,8 @@
+         public TypeTree m_Type;
+         public byte[] m_ScriptID; //Hash128
+         public byte[] m_OldTypeHash; //Hash128
++        public byte[] m_TypeTreeContentHash; //Hash128, version >= 23
++        public int m_TypeTreeSerializedSize; //version >= 23, size of the type tree blob in bytes
+         public int[] m_TypeDependencies;
+         public string m_KlassName;
+         public string m_NameSpace;

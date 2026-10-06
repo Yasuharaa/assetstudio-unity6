@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -312,7 +312,33 @@ namespace AssetStudio
                 Logger.Verbose($"File has type tree enabled !!");
                 type.m_Type = new TypeTree();
                 type.m_Type.m_Nodes = new List<TypeTreeNode>();
-                if (header.m_Version >= SerializedFileFormatVersion.Unknown_12 || header.m_Version == SerializedFileFormatVersion.Unknown_10)
+                if (header.m_Version >= SerializedFileFormatVersion.TypeTreeBlobHeader)
+                {
+                    type.m_TypeTreeContentHash = reader.ReadBytes(16);
+                    type.m_TypeTreeSerializedSize = reader.ReadInt32();
+                    Logger.Verbose($"Type tree blob size {type.m_TypeTreeSerializedSize}");
+                    if (type.m_TypeTreeSerializedSize > 0)
+                    {
+                        var blobEnd = reader.Position + type.m_TypeTreeSerializedSize;
+                        var magic = reader.ReadBytes(4);
+                        if (magic[0] != 'm' || magic[1] != 'h' || magic[2] != 't' || magic[3] != 't')
+                        {
+                            throw new IOException($"Invalid type tree blob magic {Convert.ToHexString(magic)} in {fileName}");
+                        }
+                        var blobVersion = reader.ReadUInt32();
+                        if (blobVersion != (uint)header.m_Version)
+                        {
+                            Logger.Warning($"Type tree blob version {blobVersion} differs from file format version {(int)header.m_Version} in {fileName}");
+                        }
+                        TypeTreeBlobRead(type.m_Type);
+                        if (reader.Position != blobEnd)
+                        {
+                            Logger.Warning($"Type tree blob of class {type.classID} ended at 0x{reader.Position:X}, expected 0x{blobEnd:X}");
+                            reader.Position = blobEnd;
+                        }
+                    }
+                }
+                else if (header.m_Version >= SerializedFileFormatVersion.Unknown_12 || header.m_Version == SerializedFileFormatVersion.Unknown_10)
                 {
                     TypeTreeBlobRead(type.m_Type);
                 }

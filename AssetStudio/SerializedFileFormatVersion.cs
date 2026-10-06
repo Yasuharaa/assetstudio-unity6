@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -80,8 +80,13 @@ namespace AssetStudio
         /// </summary>
         StoresTypeDependencies = 21,
         /// <summary>
-        /// 2020.1 to 2023.x / 6000.x (Unity 6)
+        /// 2020.1 to 2023.x / 6000.0 - 6000.4
         /// </summary>
-        LargeFilesSupport = 22
+        LargeFilesSupport = 22,
+        /// <summary>
+        /// 6000.5 and up: each SerializedType carries a type tree content hash (Hash128)
+        /// and a size-prefixed type tree blob that starts with "mhtt" + format version
+        /// </summary>
+        TypeTreeBlobHeader = 23
     }
 }
